@@ -1,0 +1,41 @@
+name: Logs Collector
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "ID del run del workflow principal"
+        required: true
+      repositorio:
+         required: true
+
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  collect-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar logs del run principal
+        run: |
+          curl -sSL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.event.inputs.repositorio }}/actions/runs/${{ github.event.inputs.run_id }}/logs \ 
+            -o logs.zip
+
+      - name: Verificar archivo
+        run: file logs.zip
+
+      - name: Descomprimir logs
+        run: |
+          mkdir logs
+          unzip logs.zip -d logs
+
+      - name: Subir logs como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.event.inputs.run_id }}
+          path: logs
